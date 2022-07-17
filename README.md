@@ -27,7 +27,7 @@
 
 ## About declarative-routes
 
-The goal of this project is to provide a system to finally use routes in your application in a type-safe manner. That means no more magic strings when for navigation! This library was designed with TypeScript in mind but should work with pure JavaScript as well, however I recommend TypeScript for everyone if you are thinking about type safety.
+The goal of this project is to provide a system to finally use routes in your application in a type-safe manner. That means no more magic strings in the navigation! Library is framework agnostic so it should work with any frontend framework. This library was designed with TypeScript in mind but should work with pure JavaScript as well, however I recommend TypeScript for everyone if you are thinking about type safety.
 
 ## Getting started
 
