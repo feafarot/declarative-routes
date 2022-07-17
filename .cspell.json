@@ -22,7 +22,8 @@
     "transpiled",
     "typedoc",
     "untracked",
-    "endregion"
+    "endregion",
+    "feafarot"
   ],
   "flagWords": [],
   "ignorePaths": [

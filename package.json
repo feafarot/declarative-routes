@@ -5,7 +5,7 @@
     "url": "https://github.com/feafarot",
     "name": "Roman Konkin"
   },
-  "description": "Allows to use routes in a type-safe way",
+  "description": "Declarative and type-safe routes for any project",
   "main": "build/main/index.js",
   "types": "build/main/index.d.ts",
   "module": "build/module/index.js",
@@ -15,7 +15,8 @@
     "route",
     "naviagation",
     "router",
-    "declarative"
+    "declarative",
+    "typesafe"
   ],
   "scripts": {
     "build": "run-p build:*",
@@ -107,5 +108,8 @@
     "exclude": [
       "**/*.spec.js"
     ]
+  },
+  "volta": {
+    "node": "16.16.0"
   }
 }
