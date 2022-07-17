@@ -29,14 +29,15 @@ type RouteBuilders<T> = {
 };
 
 //#region Route Types
-type SimpleRoute<TRoutes> = {
+export type SimpleRoute<TRoutes> = {
   [k in keyof TRoutes]: Route<TRoutes[k]>;
 } & {
   render(): string;
+  asRoot(): SimpleRoute<TRoutes>;
 };
 
-type ParamRoute<TRoutes> = {
-  <TValue>(value: TValue): SimpleRoute<TRoutes>
+export type ParamRoute<TRoutes> = {
+  <TValue>(value: TValue): SimpleRoute<TRoutes>;
 };
 
 type Route<TBuilder> =
@@ -72,20 +73,28 @@ function buildRoutesInner<TRouteBuilders extends RouteBuilders<TRouteBuilders>>(
       const routeBuilder = routeBuilders[key];
       if (routeBuilder.isParam) {
         final[key] = (<T>(value: T) => {
-          const renderer = () =>
-            combine(prefixRenderer, value, options);
+          const renderer = () => combine(prefixRenderer, value, options);
+          const asRootRenderer = () => combine(undefined, value, options);
           return {
             render: renderer,
+            asRoot: () => ({
+              render: asRootRenderer,
+              ...buildRoutesInner(routeBuilder.children as unknown, options, asRootRenderer)
+            }),
             ...buildRoutesInner(routeBuilder.children as unknown, options, renderer)
           }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }) as any;
       }
       else {
-        const renderer = () =>
-          combine(prefixRenderer, routeBuilder.path, options);
+        const renderer = () => combine(prefixRenderer, routeBuilder.path, options);
+        const asRootRenderer = () => combine(undefined, routeBuilder.path, options);
         final[key] = {
           render: renderer,
+          asRoot: () => ({
+            render: asRootRenderer,
+            ...buildRoutesInner(routeBuilder.children as unknown, options, asRootRenderer)
+          }),
           ...buildRoutesInner(routeBuilder.children as unknown, options, renderer)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any;
