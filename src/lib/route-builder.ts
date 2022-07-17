@@ -1,4 +1,4 @@
-const getKeys = <T>(obj: T) => Object.keys(obj) as Array<keyof T>
+const getKeys = <T>(obj: T) => Object.keys(obj) as Array<keyof T>;
 
 export interface RoutesOptions {
   separator: string;
@@ -29,10 +29,25 @@ type RouteBuilders<T> = {
 };
 
 //#region Route Types
+// TODO: Rework to class?
 export type SimpleRoute<TRoutes> = {
   [k in keyof TRoutes]: Route<TRoutes[k]>;
 } & {
+  /** Renders route as string with separators */
   render(): string;
+  /**
+   * Renders route as string with separators
+   * @experimental This might be removed in future release
+   */
+  _r(): string;
+  /** Renders route as array of strings */
+  renderArray(): string[];
+  /**
+   * Renders route as array of strings
+   * @experimental This might be removed in future release
+   */
+  _ra(): string[];
+  /** Truncates all leading route fragments to this route */
   asRoot(): SimpleRoute<TRoutes>;
 };
 
@@ -51,53 +66,116 @@ type RoutesMap<TRoutes> = {
 }
 //#endregion
 
+// class Renderer {
+//   constructor(
+//     private readonly fragment: string,
+//     private readonly prefixRenderer: Renderer | null,
+//     private readonly options: RoutesOptions) { }
 
-function combine<T>(
-  resolvePrefix: (() => string) | undefined,
-  fragment: T,
-  options: RoutesOptions) {
-  const prefix = resolvePrefix
-    ? `${resolvePrefix()}${options.separator}`
-    : options.leadingSeparator ? `${options.separator}` : ''
-  return `${prefix}${fragment}`;
+//   render(asRoot = false): string {
+//     const prefixRenderer = asRoot ? undefined : this.prefixRenderer;
+//     const prefix = prefixRenderer
+//       ? `${prefixRenderer.render()}${this.options.separator}`
+//       : this.options.leadingSeparator ? `${this.options.separator}` : ''
+//     return `${prefix}${this.fragment}`;
+//   }
+
+//   renderAsArray(asRoot = false): string[] {
+//     const prefixRenderer = asRoot ? undefined : this.prefixRenderer;
+//     return [...(prefixRenderer?.renderAsArray() || []), `${this.fragment}`];
+//   }
+// }
+
+class Renderer {
+  constructor(
+    private readonly fragment: string,
+    private readonly prefixRenderer: Renderer | undefined,
+    private readonly options: RoutesOptions) { }
+
+  render(): string {
+    const prefix = this.prefixRenderer
+      ? `${this.prefixRenderer.render()}${this.options.separator}`
+      : this.options.leadingSeparator
+        ? `${this.options.separator}`
+        : '';
+    return `${prefix}${this.fragment}`;
+  }
+
+  renderAsArray(): string[] {
+    return [
+      ...(this.prefixRenderer?.renderAsArray() || []),
+      `${this.fragment}`
+    ];
+  }
+
+  asRoot() {
+    return new Renderer(this.fragment, null, this.options);
+  }
+}
+
+// function combine<T>(
+//   resolvePrefix: (() => string) | undefined,
+//   fragment: T,
+//   options: RoutesOptions) {
+//   const prefix = resolvePrefix
+//     ? `${resolvePrefix()}${options.separator}`
+//     : options.leadingSeparator ? `${options.separator}` : ''
+//   return `${prefix}${fragment}`;
+// }
+
+// function combineToArray<T>(
+//   resolvePrefix: (() => string[]) | undefined,
+//   fragment: T) {
+//   return [...(resolvePrefix?.() || []), `${fragment}`];
+// }
+
+
+function buildRoute<TChildren extends RouteBuilders<TChildren>>(
+  children: TChildren,
+  fragment: string,
+  prefixRenderer: Renderer | undefined,
+  options: RoutesOptions)
+  : SimpleRoute<TChildren>
+{
+  const renderer = new Renderer(fragment, prefixRenderer, options);
+  return {
+    render: () => renderer.render(),
+    renderArray: () => renderer.renderAsArray(),
+    _r: () => renderer.render(),
+    _ra: () => renderer.renderAsArray(),
+    asRoot: () => buildRoute(children, fragment, undefined, options),
+    ...buildRoutesInner(children, options, renderer)
+  };
 }
 
 function buildRoutesInner<TRouteBuilders extends RouteBuilders<TRouteBuilders>>(
   routeBuilders: TRouteBuilders,
   options: RoutesOptions,
-  prefixRenderer?: () => string)
+  prefixRenderer?: Renderer)
   : RoutesMap<TRouteBuilders>
 {
+  // TODO: Improve type-safety to avoid 'any'
+  //       PS: I will appreciate any help with this
   return getKeys(routeBuilders).reduce<RoutesMap<TRouteBuilders>>(
     (final, key) => {
       const routeBuilder = routeBuilders[key];
       if (routeBuilder.isParam) {
         final[key] = (<T>(value: T) => {
-          const renderer = () => combine(prefixRenderer, value, options);
-          const asRootRenderer = () => combine(undefined, value, options);
-          return {
-            render: renderer,
-            asRoot: () => ({
-              render: asRootRenderer,
-              ...buildRoutesInner(routeBuilder.children as unknown, options, asRootRenderer)
-            }),
-            ...buildRoutesInner(routeBuilder.children as unknown, options, renderer)
-          }
+          return buildRoute(
+            routeBuilder.children,
+            `${value}`,
+            prefixRenderer,
+            options);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }) as any;
       }
       else {
-        const renderer = () => combine(prefixRenderer, routeBuilder.path, options);
-        const asRootRenderer = () => combine(undefined, routeBuilder.path, options);
-        final[key] = {
-          render: renderer,
-          asRoot: () => ({
-            render: asRootRenderer,
-            ...buildRoutesInner(routeBuilder.children as unknown, options, asRootRenderer)
-          }),
-          ...buildRoutesInner(routeBuilder.children as unknown, options, renderer)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any;
+        final[key] = buildRoute(
+          routeBuilder.children,
+          routeBuilder.path,
+          prefixRenderer,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          options) as any;
       }
 
       return final;

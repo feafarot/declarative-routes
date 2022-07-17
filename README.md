@@ -76,7 +76,9 @@ export const routes = buildRoutes({
 });
 
 ```
+
 Then whenever you want to generate navigation url:
+
 ```typescript
 // some-place-with-nav.ts
 import { routes } from './routes'; // Actual path here
@@ -84,7 +86,7 @@ import { routes } from './routes'; // Actual path here
 // ...
 
 /**
- * Given orderId = 'o-123' this method will return:
+ * Given orderId = 'o-123' this function will return:
  * 'order/o-123/edit'
  */
 function getEditUrl(orderId: string) {
@@ -98,7 +100,7 @@ function getEditUrl(orderId: string) {
 // pointing at it
 
 /**
- * Given orderId = 'o-123' this method will return:
+ * Given orderId = 'o-123' this function will return:
  * 'o-123/edit'
  */
 function getRelativeEditUrl(orderId: string) {  
@@ -106,8 +108,45 @@ function getRelativeEditUrl(orderId: string) {
   const orderRoute = routes.order._id(orderId).asRoot(); 
   return orderRoute.edit.render();
 }
+```
 
-// ...
+In case you're working with angular and want to use navigation:
+
+```typescript
+// component-with-nav.ts
+
+// other angular imports...
+import { Router } from '@angular/router';
+import { routes } from './routes'; // Actual path here
+
+@Component({
+  template: '<a [routerLink]="getOrderUrl(testOrderId)"></a>'
+})
+class SomeComponent {
+  private readonly router: Router; // Assuming it came from angular DI
+  testOrderId = '0-123';
+
+  // ... constructor etc.
+
+  /**
+   * Given orderId = 'o-123' this function will navigate to:
+   * ['order', 'o-123', 'edit']
+   * This could be used both for 'router.navigate' and [routerLink] directory
+   */
+  getOrderUrl(orderId: string) {
+    return routes.order._id(orderId).edit.renderArray();
+  }
+
+  /**
+   * Given orderId = 'o-123' this function will navigate to:
+   * 'order/o-123/edit'
+   */
+  editOrder(orderId: string) {
+    const navigationCommands = this.getOrderUrl(orderId);
+    // navigationCommands = ['order', 'o-123', 'edit']
+    this.router.navigate(this.getOrderUrl(orderId));
+  }
+}
 ```
 
 ## Contributing

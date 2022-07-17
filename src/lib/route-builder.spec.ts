@@ -7,21 +7,22 @@ import {
   RoutesOptions
 } from './route-builder';
 
-test('Simple route', (t) => {
+
+test('[string] Simple route', (t) => {
   const routes = buildRoutes({
     category: route('category')
   });
   t.is(routes.category.render(), 'category');
 });
 
-test('Simple parameter', (t) => {
+test('[string] Simple parameter', (t) => {
   const routes = buildRoutes({
     _id: parameter('_id')
   });
   t.is(routes._id(2).render(), '2');
 });
 
-test('Complex route table', (t) => {
+test('[string] Complex route table', (t) => {
   const routes = buildRoutes({
     order: route('order').withChildren({
       _id: parameter('id')
@@ -44,7 +45,7 @@ test('Complex route table', (t) => {
   t.is(routes.cart.render(), 'cart');
 });
 
-test('Leading separator', (t) => {
+test('[string] Leading separator', (t) => {
   const options: Partial<RoutesOptions> = {
     leadingSeparator: true
   };
@@ -59,7 +60,7 @@ test('Leading separator', (t) => {
   t.is(routes.all.render(), '/all');
 });
 
-test('Custom separator', (t) => {
+test('[string] Custom separator', (t) => {
   const options: Partial<RoutesOptions> = {
     separator: '\\'
   };
@@ -74,7 +75,7 @@ test('Custom separator', (t) => {
   t.is(routes.category._name('test').render(), 'category\\test');
 });
 
-test('Complex asRoot()', (t) => {
+test('[string] Complex asRoot()', (t) => {
   const routes = buildRoutes({
     order: route('order').withChildren({
       _id: parameter('id')
@@ -96,4 +97,43 @@ test('Complex asRoot()', (t) => {
   t.is(orderRoute.edit.test.render(), 'o-123/edit/test');
   t.is(routes.order.all.asRoot().render(), 'all');
   t.is(routes.cart.render(), 'cart');
+});
+
+/* Array render tests */
+
+test('[array] Simple route', (t) => {
+  const routes = buildRoutes({
+    category: route('category')
+  });
+  t.deepEqual(routes.category.renderArray(), ['category']);
+});
+
+test('[array] Simple parameter', (t) => {
+  const routes = buildRoutes({
+    _id: parameter('_id')
+  });
+  t.deepEqual(routes._id(2).renderArray(), ['2']);
+});
+
+test('[array] Complex route table', (t) => {
+  const routes = buildRoutes({
+    order: route('order').withChildren({
+      _id: parameter('id')
+        .withChildren({
+          share: route('share'),
+          edit: route('edit').withChildren({
+            preview: route('preview')
+          }),
+        }),
+      all: route('all')
+    }),
+    cart: route('cart')
+  });
+
+  t.deepEqual(routes.order._id('o-123').renderArray(), ['order','o-123']);
+  t.deepEqual(routes.order._id('o-123').edit.renderArray(), ['order','o-123','edit']);
+  t.deepEqual(routes.order._id('o-123').share.renderArray(), ['order','o-123','share']);
+  t.deepEqual(routes.order._id('o-123').edit.preview.renderArray(), ['order','o-123','edit','preview']);
+  t.deepEqual(routes.order.all.renderArray(), ['order','all']);
+  t.deepEqual(routes.cart.renderArray(), ['cart']);
 });
